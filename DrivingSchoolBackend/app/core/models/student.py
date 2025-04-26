@@ -15,10 +15,15 @@ if TYPE_CHECKING:
 class Student(Base):
     __tablename__ = 'student'
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(
+    # id: Mapped[int] = mapped_column(primary_key=True)
+    # user_id: Mapped[int] = mapped_column(
+    #     ForeignKey('user.id', ondelete="CASCADE"),
+    #     unique=True,
+    # )
+    id: Mapped[int] = mapped_column(
         ForeignKey('user.id', ondelete="CASCADE"),
         unique=True,
+        primary_key=True,
     )
     category_level_id: Mapped[int] = mapped_column(ForeignKey('category_level.id', ondelete="CASCADE"))
     group_id: Mapped[int | None] = mapped_column(ForeignKey('group.id', ondelete="SET NULL"))
