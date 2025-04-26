@@ -17,12 +17,17 @@ if TYPE_CHECKING:
 class Instructor(Base):
     __tablename__ = 'instructor'
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    work_started_date: Mapped[date]
-    user_id: Mapped[int] = mapped_column(
+    # id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(
         ForeignKey('user.id', ondelete="CASCADE"),
         unique=True,
+        primary_key=True,
     )
+    work_started_date: Mapped[date]
+    # user_id: Mapped[int] = mapped_column(
+    #     ForeignKey('user.id', ondelete="CASCADE"),
+    #     unique=True,
+    # )
 
     user: Mapped["User"] = relationship(back_populates="instructor")
     instructor_category_levels: Mapped[list["InstructorCategoryLevel"]] = relationship(back_populates="instructor")
