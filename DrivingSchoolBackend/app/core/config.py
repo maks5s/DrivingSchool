@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).parent.parent
 
 
 class RunConfig(BaseModel):
-    host: str = "0.0.0.0"
+    host: str = "localhost"
     port: int = 8000
 
 
@@ -40,7 +40,7 @@ class AuthJWT(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=BASE_DIR / ".env",
         case_sensitive=False,
         env_nested_delimiter="__",
         env_prefix="APP_CONFIG__"
