@@ -16,7 +16,14 @@ class ApiPrefix(BaseModel):
 
 
 class DatabaseConfig(BaseModel):
+    # DB connections
     url: PostgresDsn
+    host: str
+    port: int
+    db_name: str
+    dbms_engine: str
+
+    # SQLA parameters
     echo: bool = False
     echo_pool: bool = False
     pool_size: int = 5
