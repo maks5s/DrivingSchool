@@ -38,6 +38,12 @@ class AuthJWT(BaseModel):
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days just for educational purposes
 
 
+class UserRoles(BaseModel):
+    admin: str = "admin_role"
+    student: str = "student_role"
+    instructor: str = "instructor_role"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
@@ -49,6 +55,7 @@ class Settings(BaseSettings):
     api: ApiPrefix = ApiPrefix()
     db: DatabaseConfig
     auth_jwt: AuthJWT = AuthJWT()
+    roles: UserRoles = UserRoles()
 
 
 settings = Settings()
