@@ -46,6 +46,36 @@ class DatabaseHelper:
         async with self.session_factory() as session:
             yield session
 
+    def _get_user_pwd_connection_string(
+        self,
+        username: str,
+        password: str,
+    ):
+        return f"{self.dbms_engine}://{username}:{password}@{self.host}:{self.port}/{self.db_name}"
+
+    # Dynamic session generator based on username and password conn string
+    async def user_pwd_session_getter(
+        self,
+        username: str,
+        password: str,
+    ):
+        engine = create_async_engine(
+            url=self._get_user_pwd_connection_string(username, password),
+            echo=self.echo,
+            echo_pool=self.echo_pool,
+            pool_size=self.pool_size,
+            max_overflow=self.max_overflow,
+        )
+        session_factory = async_sessionmaker(
+            bind=engine,
+            autoflush=False,
+            autocommit=False,
+            expire_on_commit=False,
+        )
+
+        async with session_factory() as session:
+            yield session
+
 
 db_helper = DatabaseHelper(
     url=str(settings.db.url),
