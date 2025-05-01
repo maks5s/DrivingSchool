@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import re
 from pydantic import BaseModel, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -66,3 +66,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_]{3,30}$")
