@@ -18,7 +18,7 @@ class Group(Base):
     __tablename__ = 'group'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(50))
+    name: Mapped[str] = mapped_column(String(50), unique=True)
     created_date: Mapped[date]
     category_level_id: Mapped[int] = mapped_column(ForeignKey('category_level.id', ondelete="CASCADE"))
     instructor_id: Mapped[int | None] = mapped_column(ForeignKey('instructor.id', ondelete="SET NULL"))
