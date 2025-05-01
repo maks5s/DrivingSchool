@@ -27,4 +27,7 @@ class CategoryLevelUpdateSchema(CategoryLevelCreateSchema):
 
 class CategoryLevelReadSchema(CategoryLevelBaseSchema):
     id: int
+
+
+class CategoryLevelWithInfoReadSchema(CategoryLevelReadSchema):
     category_level_info: CategoryLevelInfoSchema
