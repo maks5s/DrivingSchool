@@ -17,7 +17,7 @@ class Vehicle(Base):
     brand: Mapped[str] = mapped_column(String(50))
     model: Mapped[str] = mapped_column(String(50))
     manufacture_year: Mapped[int]
-    license_plate: Mapped[str] = mapped_column(String(20))
+    license_plate: Mapped[str] = mapped_column(String(20), unique=True)
     fuel_type: Mapped[str] = mapped_column(String(20))
     category_level_id: Mapped[int] = mapped_column(ForeignKey('category_level.id', ondelete="CASCADE"))
 
