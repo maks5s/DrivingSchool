@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from core.models import db_helper
-from core.schemas.category_level import CategoryLevelReadSchema, CategoryLevelCreateSchema, CategoryLevelUpdateSchema
+from core.schemas.category_level import CategoryLevelWithInfoReadSchema, CategoryLevelCreateSchema, CategoryLevelUpdateSchema
 from crud import category_level as crud
 from sqlalchemy.exc import ProgrammingError
 from auth import user as auth_user
@@ -9,7 +9,7 @@ from auth import user as auth_user
 router = APIRouter(prefix="/category_levels", tags=["CategoryLevels"])
 
 
-@router.post("/", response_model=CategoryLevelReadSchema)
+@router.post("/", response_model=CategoryLevelWithInfoReadSchema)
 async def create(
     data: CategoryLevelCreateSchema,
     payload: dict = Depends(auth_user.get_current_token_payload)
@@ -24,7 +24,7 @@ async def create(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
 
 
-@router.put("/{category_level_id}", response_model=CategoryLevelReadSchema)
+@router.put("/{category_level_id}", response_model=CategoryLevelWithInfoReadSchema)
 async def update(
     category_level_id: int,
     data: CategoryLevelUpdateSchema,
@@ -40,7 +40,7 @@ async def update(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
 
 
-@router.get("/", response_model=list[CategoryLevelReadSchema])
+@router.get("/", response_model=list[CategoryLevelWithInfoReadSchema])
 async def get_all(
     payload: dict = Depends(auth_user.get_current_token_payload)
 ):
@@ -54,7 +54,7 @@ async def get_all(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
 
 
-@router.get("/{category_level_id}", response_model=CategoryLevelReadSchema)
+@router.get("/{category_level_id}", response_model=CategoryLevelWithInfoReadSchema)
 async def get_by_id(
     category_level_id: int,
     payload: dict = Depends(auth_user.get_current_token_payload)
