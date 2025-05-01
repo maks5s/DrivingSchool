@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from pydantic import BaseModel, Field
 
@@ -8,7 +8,10 @@ class UserSchema(BaseModel):
     first_name: str = Field(..., min_length=1,  max_length=50)
     last_name: str = Field(..., min_length=1, max_length=50)
     patronymic: str | None = Field(None, min_length=1, max_length=50)
-    birthday: date
+    birthday: date = Field(
+        date.today() - timedelta(days=18*365),
+        le=date.today() - timedelta(days=16*365)
+    )
     phone_number: str = Field(..., max_length=15, min_length=10)
 
 
