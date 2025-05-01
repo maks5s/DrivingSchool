@@ -13,6 +13,6 @@ class Cabinet(Base):
     __tablename__ = 'cabinet'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(16))
+    name: Mapped[str] = mapped_column(String(16), unique=True)
 
     group_schedules: Mapped[list["GroupSchedule"]] = relationship(back_populates="cabinet")
