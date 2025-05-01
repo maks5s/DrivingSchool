@@ -1,0 +1,73 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from core.models import db_helper
+from core.schemas.instructor import InstructorReadSchema, InstructorCreateSchema, InstructorUpdateSchema
+from crud import instructor as crud
+from sqlalchemy.exc import ProgrammingError
+from auth import user as auth_user
+
+router = APIRouter(prefix="/instructors", tags=["Instructor"])
+
+
+@router.post("/", response_model=InstructorReadSchema)
+async def create_instructor(
+    data: InstructorCreateSchema,
+    payload: dict = Depends(auth_user.get_current_token_payload)
+):
+    username = payload.get("username")
+    password = payload.get("password")
+
+    try:
+        async for session in db_helper.user_pwd_session_getter(username, password):
+            return await crud.create_instructor(session, data)
+    except ProgrammingError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f'You have no permissions {e}')
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'{e}')
+
+
+@router.put("/{instructor_id}", response_model=InstructorReadSchema)
+async def update_instructor(
+    instructor_id: int,
+    data: InstructorUpdateSchema,
+    payload: dict = Depends(auth_user.get_current_token_payload)
+):
+    username = payload.get("username")
+    password = payload.get("password")
+
+    try:
+        async for session in db_helper.user_pwd_session_getter(username, password):
+            return await crud.update_instructor(session, instructor_id, data)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'{e}')
+    except ProgrammingError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f'You have no permissions {e}')
+
+
+@router.get("/", response_model=list[InstructorReadSchema])
+async def get_all(
+    payload: dict = Depends(auth_user.get_current_token_payload)
+):
+    username = payload.get("username")
+    password = payload.get("password")
+
+    try:
+        async for session in db_helper.user_pwd_session_getter(username, password):
+            return await crud.get_all_instructors(session)
+    except ProgrammingError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
+
+
+@router.get("/{instructor_id}", response_model=InstructorReadSchema)
+async def get_by_id(
+    instructor_id: int,
+    payload: dict = Depends(auth_user.get_current_token_payload)
+):
+    username = payload.get("username")
+    password = payload.get("password")
+
+    try:
+        async for session in db_helper.user_pwd_session_getter(username, password):
+            return await crud.get_instructor_by_id(session, instructor_id)
+    except ProgrammingError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
