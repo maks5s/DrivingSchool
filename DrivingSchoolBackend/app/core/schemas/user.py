@@ -1,6 +1,8 @@
 from datetime import date, timedelta
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from core.config import USERNAME_REGEX, PASSWORD_REGEX
 
 
 class UserSchema(BaseModel):
@@ -13,6 +15,18 @@ class UserSchema(BaseModel):
         le=date.today() - timedelta(days=16*365)
     )
     phone_number: str = Field(..., max_length=15, min_length=10)
+
+    @field_validator("username", mode='before')
+    def validate_username(cls, v):
+        if not USERNAME_REGEX.match(v):
+            raise ValueError("Username must contain only letters, digits, and underscores (3–30 chars)")
+        return v
+
+    @field_validator("password", mode="before")
+    def validate_password(cls, v):
+        if not PASSWORD_REGEX.match(v):
+            raise ValueError("Password must contain only letters, digits, and underscores (5–50 chars)")
+        return v
 
 
 class UserCreateSchema(UserSchema):
