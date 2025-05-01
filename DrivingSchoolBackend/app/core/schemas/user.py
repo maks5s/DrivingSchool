@@ -22,15 +22,15 @@ class UserSchema(BaseModel):
             raise ValueError("Username must contain only letters, digits, and underscores (3–30 chars)")
         return v
 
+
+class UserCreateSchema(UserSchema):
+    password: str = Field(..., min_length=5)
+
     @field_validator("password", mode="before")
     def validate_password(cls, v):
         if not PASSWORD_REGEX.match(v):
             raise ValueError("Password must contain only letters, digits, and underscores (5–50 chars)")
         return v
-
-
-class UserCreateSchema(UserSchema):
-    password: str = Field(..., min_length=5)
 
 
 class UserReadSchema(UserSchema):
