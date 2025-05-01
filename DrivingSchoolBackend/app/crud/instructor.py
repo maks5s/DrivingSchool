@@ -78,13 +78,16 @@ async def update_instructor(session: AsyncSession, instructor_id: int, data: Ins
             detail="Instructor not found"
         )
 
+    # if instructor.user.username != data.user.username:
+    #     existing = await get_user_by_username(session, data.user.username)
+    #     if existing:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_400_BAD_REQUEST,
+    #             detail="Another user with this username already exists"
+    #         )
+
     if instructor.user.username != data.user.username:
-        existing = await get_user_by_username(session, data.user.username)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Another user with this username already exists"
-            )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change username")
 
     if instructor.user.phone_number != data.user.phone_number:
         existing = await get_user_by_phone_number(session, data.user.phone_number)
@@ -103,16 +106,15 @@ async def update_instructor(session: AsyncSession, instructor_id: int, data: Ins
     user.birthday = data.user.birthday
     user.phone_number = data.user.phone_number
 
-    if user.hashed_password != hash_password(data.password):
-        user.hashed_password = hash_password(data.password)
+    new_hashed_password = hash_password(data.password)
+
+    if user.hashed_password != new_hashed_password:
+        user.hashed_password = new_hashed_password
 
         query = text(f"""
             ALTER USER "{user.username}" WITH PASSWORD '{data.password}';
         """)
         await session.execute(query)
-
-    if user.username != data.user.username:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change username")
 
     await session.commit()
     await session.refresh(instructor)
