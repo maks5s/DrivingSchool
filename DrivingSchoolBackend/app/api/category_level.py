@@ -64,12 +64,6 @@ async def get_by_id(
 
     try:
         async for session in db_helper.user_pwd_session_getter(username, password):
-            category_level = await crud.get_category_level_by_id(session, category_level_id)
-            if not category_level:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Category level with id:{category_level_id} not found"
-                )
-            return category_level
+            return await crud.get_category_level_by_id(session, category_level_id)
     except ProgrammingError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')

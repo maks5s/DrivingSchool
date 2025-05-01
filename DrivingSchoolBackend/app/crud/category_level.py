@@ -109,4 +109,7 @@ async def get_category_level_by_id(session: AsyncSession, category_level_id: int
         .options(selectinload(CategoryLevel.category_level_info))
         .where(CategoryLevel.id == category_level_id)
     )
-    return result.scalar_one_or_none()
+    category_level = result.scalar_one_or_none()
+    if not category_level:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category level not found")
+    return category_level
