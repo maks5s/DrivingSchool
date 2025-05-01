@@ -20,8 +20,8 @@ async def create_instructor(
     try:
         async for session in db_helper.user_pwd_session_getter(username, password):
             return await crud.create_instructor(session, data)
-    except ProgrammingError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f'You have no permissions {e}')
+    except ProgrammingError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'{e}')
 
@@ -40,8 +40,8 @@ async def update_instructor(
             return await crud.update_instructor(session, instructor_id, data)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'{e}')
-    except ProgrammingError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f'You have no permissions {e}')
+    except ProgrammingError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
 
 
 @router.get("/", response_model=list[InstructorReadSchema])
