@@ -1,4 +1,4 @@
-from sqlalchemy import String
+from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -26,3 +26,5 @@ class CategoryLevel(Base):
     instructor_category_levels: Mapped[list["InstructorCategoryLevel"]] = relationship(back_populates="category_level")
     vehicles: Mapped[list["Vehicle"]] = relationship(back_populates="category_level")
     groups: Mapped[list["Group"]] = relationship(back_populates="category_level")
+
+    __table_args__ = (UniqueConstraint("category", "transmission"),)
