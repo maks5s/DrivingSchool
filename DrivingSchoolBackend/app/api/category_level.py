@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models import db_helper
 from core.schemas.category_level import CategoryLevelReadSchema, CategoryLevelCreateSchema, CategoryLevelUpdateSchema
@@ -42,16 +41,35 @@ async def update(
 
 
 @router.get("/", response_model=list[CategoryLevelReadSchema])
-async def get_all(session: AsyncSession = Depends(db_helper.session_getter)):
-    return await crud.get_all_category_levels(session)
+async def get_all(
+    payload: dict = Depends(auth_user.get_current_token_payload)
+):
+    username = payload.get("username")
+    password = payload.get("password")
+
+    try:
+        async for session in db_helper.user_pwd_session_getter(username, password):
+            return await crud.get_all_category_levels(session)
+    except ProgrammingError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
 
 
 @router.get("/{category_level_id}", response_model=CategoryLevelReadSchema)
-async def get_by_id(category_level_id: int, session: AsyncSession = Depends(db_helper.session_getter)):
-    category_level = await crud.get_category_level_by_id(session, category_level_id)
-    if not category_level:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Category level with id:{category_level_id} not found"
-        )
-    return category_level
+async def get_by_id(
+    category_level_id: int,
+    payload: dict = Depends(auth_user.get_current_token_payload)
+):
+    username = payload.get("username")
+    password = payload.get("password")
+
+    try:
+        async for session in db_helper.user_pwd_session_getter(username, password):
+            category_level = await crud.get_category_level_by_id(session, category_level_id)
+            if not category_level:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Category level with id:{category_level_id} not found"
+                )
+            return category_level
+    except ProgrammingError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
