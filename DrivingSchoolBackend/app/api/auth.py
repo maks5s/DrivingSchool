@@ -5,7 +5,7 @@ from core.schemas.token import TokenInfo
 from auth import user as auth_user
 from auth import utils as auth_utils
 
-router = APIRouter(prefix="auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/login", response_model=TokenInfo)
