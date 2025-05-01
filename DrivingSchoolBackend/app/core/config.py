@@ -67,3 +67,4 @@ class Settings(BaseSettings):
 
 settings = Settings()
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_]{3,30}$")
+PASSWORD_REGEX = re.compile(r"^[a-zA-Z0-9_]{5,50}$")
