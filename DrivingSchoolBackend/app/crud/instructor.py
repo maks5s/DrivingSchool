@@ -1,9 +1,9 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, text
-from sqlalchemy.orm import selectinload, Session
+from sqlalchemy import select, text
+from sqlalchemy.orm import selectinload
 
-from core.models import User, Instructor, db_helper
+from core.models import User, Instructor
 from core.schemas.instructor import InstructorCreateSchema, InstructorUpdateSchema
 from auth.utils import hash_password
 from crud.user import get_user_by_username, get_user_by_phone_number
