@@ -45,9 +45,9 @@ async def check_schedule_conflict(session: AsyncSession, data: GroupScheduleSche
     cabinet_result = await session.execute(cabinet_query)
     group_result = await session.execute(group_query)
 
-    if cabinet_result.scalar_one_or_none():
+    if cabinet_result.scalars().all():
         return "cabinet"
-    if group_result.scalar_one_or_none():
+    if group_result.scalars().all():
         return "group"
     return None
 
