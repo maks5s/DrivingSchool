@@ -8,6 +8,7 @@ from .cabinet import router as cabinet_router
 from .instructor import router as instructor_router
 from .group import router as group_router
 from .student import router as student_router
+from .group_schedule import router as group_schedule_router
 
 router = APIRouter(prefix=settings.api.prefix)
 router.include_router(auth_router)
@@ -17,3 +18,4 @@ router.include_router(cabinet_router)
 router.include_router(instructor_router)
 router.include_router(group_router)
 router.include_router(student_router)
+router.include_router(group_schedule_router)
