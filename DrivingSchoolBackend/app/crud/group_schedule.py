@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
@@ -158,3 +158,13 @@ async def get_group_schedules_by_group_id(session: AsyncSession, group_id: int):
 async def get_all_group_schedules(session: AsyncSession):
     result = await session.execute(select(GroupSchedule))
     return result.scalars().all()
+
+
+async def get_max_schedule_date_by_group_id(session: AsyncSession, group_id: int):
+    existing = await get_group_by_id(session, group_id)
+
+    result = await session.execute(
+        select(func.max(GroupSchedule.date))
+        .where(GroupSchedule.group_id == group_id)
+    )
+    return result.scalar_one_or_none()
