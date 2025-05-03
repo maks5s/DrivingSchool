@@ -4,13 +4,16 @@ from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
+from core.config import settings
 from core.models import PracticeSchedule
+from core.schemas.group_schedule import ExistingGroupScheduleSchema
 from core.schemas.practice_schedule import PracticeScheduleSchema, PracticeScheduleCreateSchema, \
-    PracticeScheduleUpdateSchema
-from crud.group_schedule import get_max_schedule_date_by_group_id
+    PracticeScheduleUpdateSchema, PracticeScheduleButchCreateSchema, StudentForScheduleSchema
+from crud.category_level import get_category_level_by_id
 from crud.instructor import get_instructor_by_id
 from crud.student import get_student_by_id
-from crud.vehicle import get_vehicle_by_id
+from crud.vehicle import get_vehicle_by_id, get_all_vehicles_by_category_level
+from schedule_generators.practice_schedule import generate_practice_schedule
 
 
 async def check_schedule_conflict(session: AsyncSession, data: PracticeScheduleSchema, schedule_id: int | None = None):
@@ -87,6 +90,7 @@ async def create_practice_schedule(session: AsyncSession, data: PracticeSchedule
 
     student = await get_student_by_id(session, data.student_id)
 
+    from crud.group_schedule import get_max_schedule_date_by_group_id
     max_group_schedule_date = await get_max_schedule_date_by_group_id(session, student.group_id)
     if not max_group_schedule_date:
         raise HTTPException(
@@ -151,6 +155,7 @@ async def update_practice_schedule(session: AsyncSession, schedule_id: int, data
 
     student = await get_student_by_id(session, data.student_id)
 
+    from crud.group_schedule import get_max_schedule_date_by_group_id
     max_group_schedule_date = await get_max_schedule_date_by_group_id(session, student.group_id)
     if not max_group_schedule_date:
         raise HTTPException(
@@ -211,3 +216,129 @@ async def get_practice_schedules_by_student_id(session: AsyncSession, student_id
 async def get_all_practice_schedules(session: AsyncSession):
     result = await session.execute(select(PracticeSchedule))
     return result.scalars().all()
+
+
+async def get_all_practice_schedules_by_instructor_id_for_dates(
+    session: AsyncSession,
+    instructor_id: int,
+    start_date: date,
+    end_date: date
+):
+    result = await session.execute(
+        select(PracticeSchedule)
+        .where(
+            and_(
+                PracticeSchedule.instructor_id == instructor_id,
+                PracticeSchedule.date >= start_date,
+                PracticeSchedule.date <= end_date
+            )
+        )
+    )
+    return result.scalars().all()
+
+
+async def get_all_practice_schedules_by_vehicle_id_for_dates(
+    session: AsyncSession,
+    vehicle_id: int,
+    start_date: date,
+    end_date: date
+):
+    result = await session.execute(
+        select(PracticeSchedule)
+        .where(
+            and_(
+                PracticeSchedule.vehicle_id == vehicle_id,
+                PracticeSchedule.date >= start_date,
+                PracticeSchedule.date <= end_date
+            )
+        )
+    )
+    return result.scalars().all()
+
+
+async def create_butch_practice_schedules(
+    session: AsyncSession,
+    data: PracticeScheduleButchCreateSchema,
+):
+    today = date.today()
+    if data.start_date <= today:
+        raise Exception(f"Wrong date: date should be at least tomorrow ({today + timedelta(days=1)})")
+
+    student = await get_student_by_id(session, data.student_id)
+
+    existing = await get_instructor_by_id(session, data.instructor_id)
+
+    start_time = settings.working_info.working_start_time
+    end_time = settings.working_info.working_end_time
+    category_level = await get_category_level_by_id(session, student.category_level_id)
+    schedule_duration = category_level.category_level_info.practice_lessons_duration
+    schedule_count = category_level.category_level_info.practice_lessons_count
+
+    existing = list(await get_practice_schedules_by_student_id(session, student.id))
+    existing_count = len(existing)
+    if existing_count == schedule_count:
+        raise Exception(f"Student already has {schedule_count} practice schedules")
+    elif existing_count is not None:
+        schedule_count = schedule_count - existing_count
+
+    vehicles = await get_all_vehicles_by_category_level(session, student.category_level_id)
+    if not vehicles:
+        raise Exception("Could not find any vehicles for this category level")
+    vehicle_ids = [vec.id for vec in vehicles]
+
+    from crud.group_schedule import get_max_schedule_date_by_group_id
+    max_group_schedule_date = await get_max_schedule_date_by_group_id(session, student.group_id)
+    if not max_group_schedule_date:
+        raise Exception("Student has no group schedules, cannot create practice schedules")
+    elif max_group_schedule_date >= data.start_date:
+        raise Exception(
+            f"Wrong date: date should be at least the next day after student`s last group schedule "
+            f"({max_group_schedule_date})"
+        )
+
+    from crud.group_schedule import get_all_group_schedules_by_instructor_id_for_dates
+    group_schedules = list(await get_all_group_schedules_by_instructor_id_for_dates(
+        session, data.instructor_id, data.start_date, data.end_date
+    ))
+    existing_group_schedules = []
+    for group_schedule in group_schedules:
+        existing_group_schedules.append(ExistingGroupScheduleSchema(
+            date=group_schedule.date,
+            start_time=group_schedule.start_time,
+            end_time=group_schedule.end_time,
+            group_id=group_schedule.group_id,
+            cabinet_id=group_schedule.cabinet_id,
+            instructor_id=data.instructor_id
+        ))
+
+    existing_practice_schedules = list(await get_all_practice_schedules_by_instructor_id_for_dates(
+        session, data.instructor_id, data.start_date, data.end_date
+    ))
+
+    for vehicle_id in vehicle_ids:
+        existing_practice_schedules.extend(list(await get_all_practice_schedules_by_vehicle_id_for_dates(
+            session, vehicle_id, data.start_date, data.end_date
+        )))
+
+    result = generate_practice_schedule(
+        student=StudentForScheduleSchema(id=student.id, instructor_id=data.instructor_id),
+        vehicle_ids=vehicle_ids,
+        existing_group_schedules=existing_group_schedules,
+        existing_practice_schedules=existing_practice_schedules,
+        start_date=data.start_date,
+        end_date=data.end_date,
+        schedule_start_time=start_time,
+        schedule_end_time=end_time,
+        schedule_duration=schedule_duration,
+        schedule_count=schedule_count,
+        schedules_per_day=data.schedules_per_day,
+        include_weekends=data.include_weekends,
+    )
+    for item in result:
+        print(item)
+
+        schedule = PracticeSchedule(**item.model_dump())
+        session.add(schedule)
+        await session.commit()
+
+    return {"success": True, "detail": "Created practice schedules"}
