@@ -3,11 +3,17 @@ from datetime import date, timedelta
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
+from sqlalchemy.orm import joinedload
 
-from core.models import GroupSchedule
-from core.schemas.group_schedule import GroupScheduleCreateSchema, GroupScheduleUpdateSchema, GroupScheduleSchema
-from crud.cabinet import get_cabinet_by_id
+from core.config import settings
+from core.models import GroupSchedule, Group
+from core.schemas.group_schedule import GroupScheduleCreateSchema, GroupScheduleUpdateSchema, GroupScheduleSchema, \
+    GroupScheduleButchCreateSchema, ExistingGroupScheduleSchema, GroupForScheduleSchema
+from crud.cabinet import get_cabinet_by_id, get_all_cabinets
+from crud.category_level import get_category_level_by_id
 from crud.group import get_group_by_id
+from crud.instructor import get_instructor_by_id
+from schedule_generators.group_schedule import generate_group_schedule
 
 
 async def check_schedule_conflict(session: AsyncSession, data: GroupScheduleSchema, schedule_id: int | None = None):
@@ -160,6 +166,46 @@ async def get_all_group_schedules(session: AsyncSession):
     return result.scalars().all()
 
 
+async def get_all_group_schedules_by_instructor_id_for_dates(
+    session: AsyncSession,
+    instructor_id: int,
+    start_date: date,
+    end_date: date
+):
+    result = await session.execute(
+        select(GroupSchedule)
+        .options(joinedload(GroupSchedule.group))
+        .join(GroupSchedule.group)
+        .where(
+            and_(
+                Group.instructor_id == instructor_id,
+                GroupSchedule.date >= start_date,
+                GroupSchedule.date <= end_date
+            )
+        )
+    )
+    return result.scalars().all()
+
+
+async def get_all_group_schedules_by_cabinet_id_for_dates(
+    session: AsyncSession,
+    cabinet_id: int,
+    start_date: date,
+    end_date: date
+):
+    result = await session.execute(
+        select(GroupSchedule)
+        .where(
+            and_(
+                GroupSchedule.cabinet_id == cabinet_id,
+                GroupSchedule.date >= start_date,
+                GroupSchedule.date <= end_date
+            )
+        )
+    )
+    return result.scalars().all()
+
+
 async def get_max_schedule_date_by_group_id(session: AsyncSession, group_id: int):
     existing = await get_group_by_id(session, group_id)
 
@@ -168,3 +214,80 @@ async def get_max_schedule_date_by_group_id(session: AsyncSession, group_id: int
         .where(GroupSchedule.group_id == group_id)
     )
     return result.scalar_one_or_none()
+
+
+async def create_butch_practice_schedules(
+    session: AsyncSession,
+    data: GroupScheduleButchCreateSchema,
+):
+    today = date.today()
+    if data.start_date <= today:
+        raise Exception(f"Wrong date: date should be at least tomorrow ({today + timedelta(days=1)})")
+
+    group = await get_group_by_id(session, data.group_id)
+    existing = await get_instructor_by_id(session, group.instructor_id)
+
+    start_time = settings.working_info.working_start_time
+    end_time = settings.working_info.working_end_time
+    category_level = await get_category_level_by_id(session, group.category_level_id)
+    schedule_duration = category_level.category_level_info.theory_lessons_duration
+    schedule_count = category_level.category_level_info.theory_lessons_count
+
+    existing = list(await get_group_schedules_by_group_id(session, group.id))
+    existing_count = len(existing)
+    if existing_count == schedule_count:
+        raise Exception(f"Group already has {schedule_count} practice schedules")
+    elif existing_count is not None:
+        schedule_count = schedule_count - existing_count
+
+    cabinets = await get_all_cabinets(session)
+    if not cabinets:
+        raise Exception("Could not find any cabinets")
+    cabinet_ids = [cab.id for cab in cabinets]
+
+    group_schedules = list(await get_all_group_schedules_by_instructor_id_for_dates(
+        session, group.instructor_id, data.start_date, data.end_date
+    ))
+    for cabinet_id in cabinet_ids:
+        group_schedules.extend(list(await get_all_group_schedules_by_cabinet_id_for_dates(
+            session, cabinet_id, data.start_date, data.end_date
+        )))
+
+    existing_group_schedules = []
+    for group_schedule in group_schedules:
+        existing_group_schedules.append(ExistingGroupScheduleSchema(
+            date=group_schedule.date,
+            start_time=group_schedule.start_time,
+            end_time=group_schedule.end_time,
+            group_id=group_schedule.group_id,
+            cabinet_id=group_schedule.cabinet_id,
+            instructor_id=group.instructor_id
+        ))
+
+    from crud.practice_schedule import get_all_practice_schedules_by_instructor_id_for_dates
+    existing_practice_schedules = list(await get_all_practice_schedules_by_instructor_id_for_dates(
+        session, group.instructor_id, data.start_date, data.end_date
+    ))
+
+    result = generate_group_schedule(
+        group=GroupForScheduleSchema(id=group.id, instructor_id=group.instructor_id),
+        cabinet_ids=cabinet_ids,
+        existing_group_schedules=existing_group_schedules,
+        existing_practice_schedules=existing_practice_schedules,
+        start_date=data.start_date,
+        end_date=data.end_date,
+        schedule_start_time=start_time,
+        schedule_end_time=end_time,
+        schedule_duration=schedule_duration,
+        schedule_count=schedule_count,
+        schedules_per_day=data.schedules_per_day,
+        include_weekends=data.include_weekends,
+    )
+    for item in result:
+        print(item)
+
+        schedule = GroupSchedule(**item.model_dump())
+        session.add(schedule)
+        await session.commit()
+
+    return {"success": True, "detail": "Created group schedules"}
