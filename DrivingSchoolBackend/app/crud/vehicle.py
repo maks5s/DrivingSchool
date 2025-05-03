@@ -57,6 +57,11 @@ async def get_all_vehicles(session: AsyncSession):
     return result.scalars().all()
 
 
+async def get_all_vehicles_by_category_level(session: AsyncSession, category_level_id: int):
+    result = await session.execute(select(Vehicle).where(Vehicle.category_level_id == category_level_id))
+    return result.scalars().all()
+
+
 async def get_vehicle_by_id(session: AsyncSession, vehicle_id: int):
     result = await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
     vehicle = result.scalar_one_or_none()
