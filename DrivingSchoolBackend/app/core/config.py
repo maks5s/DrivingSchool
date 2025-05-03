@@ -1,3 +1,4 @@
+from datetime import time
 from pathlib import Path
 import re
 from pydantic import BaseModel, PostgresDsn
@@ -51,6 +52,11 @@ class UserRoles(BaseModel):
     instructor: str = "instructor_role"
 
 
+class WorkingInfo(BaseModel):
+    working_start_time: time = time(hour=8, minute=0)
+    working_end_time: time = time(hour=20, minute=0)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
@@ -63,6 +69,7 @@ class Settings(BaseSettings):
     db: DatabaseConfig
     auth_jwt: AuthJWT = AuthJWT()
     roles: UserRoles = UserRoles()
+    working_info: WorkingInfo = WorkingInfo()
 
 
 settings = Settings()
