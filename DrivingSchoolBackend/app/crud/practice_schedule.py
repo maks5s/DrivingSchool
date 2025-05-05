@@ -11,6 +11,7 @@ from core.schemas.practice_schedule import PracticeScheduleSchema, PracticeSched
     PracticeScheduleUpdateSchema, PracticeScheduleButchCreateSchema, StudentForScheduleSchema
 from crud.category_level import get_category_level_by_id
 from crud.instructor import get_instructor_by_id
+from crud.instructor_category import get_instructor_categories
 from crud.student import get_student_by_id
 from crud.vehicle import get_vehicle_by_id, get_all_vehicles_by_category_level
 from schedule_generators.practice_schedule import generate_practice_schedule
@@ -84,11 +85,25 @@ async def create_practice_schedule(session: AsyncSession, data: PracticeSchedule
             detail="Wrong time: end time should be greater than start time"
         )
 
-    existing = await get_instructor_by_id(session, data.instructor_id)
+    instructor = await get_instructor_by_id(session, data.instructor_id)
 
-    existing = await get_vehicle_by_id(session, data.vehicle_id)
+    vehicle = await get_vehicle_by_id(session, data.vehicle_id)
 
     student = await get_student_by_id(session, data.student_id)
+
+    if student.category_level_id != vehicle.category_level_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Vehicle has no such category level"
+        )
+
+    instructor_categories = await get_instructor_categories(session, data.instructor_id)
+    instructor_categories_ids = [ic.id for ic in instructor_categories]
+    if student.category_level_id not in instructor_categories_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Instructor has no such category level"
+        )
 
     from crud.group_schedule import get_max_schedule_date_by_group_id
     max_group_schedule_date = await get_max_schedule_date_by_group_id(session, student.group_id)
@@ -149,11 +164,25 @@ async def update_practice_schedule(session: AsyncSession, schedule_id: int, data
             detail="Wrong time: end time should be greater than start time"
         )
 
-    existing = await get_instructor_by_id(session, data.instructor_id)
+    instructor = await get_instructor_by_id(session, data.instructor_id)
 
-    existing = await get_vehicle_by_id(session, data.vehicle_id)
+    vehicle = await get_vehicle_by_id(session, data.vehicle_id)
 
     student = await get_student_by_id(session, data.student_id)
+
+    if student.category_level_id != vehicle.category_level_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Vehicle has no such category level"
+        )
+
+    instructor_categories = await get_instructor_categories(session, data.instructor_id)
+    instructor_categories_ids = [ic.id for ic in instructor_categories]
+    if student.category_level_id not in instructor_categories_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Instructor has no such category level"
+        )
 
     from crud.group_schedule import get_max_schedule_date_by_group_id
     max_group_schedule_date = await get_max_schedule_date_by_group_id(session, student.group_id)
@@ -201,7 +230,7 @@ async def get_practice_schedule_by_id(session: AsyncSession, schedule_id: int):
     return practice_schedule
 
 
-async def get_practice_schedules_by_student_id(session: AsyncSession, student_id: int):
+async def get_all_practice_schedules_by_student_id(session: AsyncSession, student_id: int):
     existing = await get_student_by_id(session, student_id)
 
     result = await session.execute(
@@ -264,9 +293,17 @@ async def create_butch_practice_schedules(
     if data.start_date <= today:
         raise Exception(f"Wrong date: date should be at least tomorrow ({today + timedelta(days=1)})")
 
+    instructor = await get_instructor_by_id(session, data.instructor_id)
+
     student = await get_student_by_id(session, data.student_id)
 
-    existing = await get_instructor_by_id(session, data.instructor_id)
+    instructor_categories = await get_instructor_categories(session, data.instructor_id)
+    instructor_categories_ids = [ic.id for ic in instructor_categories]
+    if student.category_level_id not in instructor_categories_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Instructor has no such category level"
+        )
 
     start_time = settings.working_info.working_start_time
     end_time = settings.working_info.working_end_time
@@ -274,7 +311,7 @@ async def create_butch_practice_schedules(
     schedule_duration = category_level.category_level_info.practice_lessons_duration
     schedule_count = category_level.category_level_info.practice_lessons_count
 
-    existing = list(await get_practice_schedules_by_student_id(session, student.id))
+    existing = list(await get_all_practice_schedules_by_student_id(session, student.id))
     existing_count = len(existing)
     if existing_count == schedule_count:
         raise Exception(f"Student already has {schedule_count} practice schedules")

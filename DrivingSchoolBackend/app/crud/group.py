@@ -6,12 +6,21 @@ from core.models import Group
 from core.schemas.group import GroupCreateSchema, GroupUpdateSchema
 from crud.category_level import get_category_level_by_id
 from crud.instructor import get_instructor_by_id
+from crud.instructor_category import get_instructor_categories
 
 
 async def create_group(session: AsyncSession, data: GroupCreateSchema):
     existing = await get_instructor_by_id(session, data.instructor_id)
 
     existing = await get_category_level_by_id(session, data.category_level_id)
+
+    instructor_categories = await get_instructor_categories(session, data.instructor_id)
+    instructor_categories_ids = [ic.id for ic in instructor_categories]
+    if data.category_level_id not in instructor_categories_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Instructor has no such category level"
+        )
 
     result = await session.execute(select(Group).where(Group.name == data.name))
     if result.scalar_one_or_none():

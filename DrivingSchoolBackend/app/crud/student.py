@@ -28,7 +28,12 @@ async def create_student(session: AsyncSession, data: StudentCreateSchema):
 
     existing = await get_category_level_by_id(session, data.category_level_id)
 
-    existing = await get_group_by_id(session, data.group_id)
+    group = await get_group_by_id(session, data.group_id)
+    if group.category_level_id != data.category_level_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Group has no such category level"
+        )
 
     user = User(
         username=data.user.username,
@@ -87,7 +92,12 @@ async def update_student(session: AsyncSession, student_id: int, data: StudentUp
 
     existing = await get_category_level_by_id(session, data.category_level_id)
 
-    existing = await get_group_by_id(session, data.group_id)
+    group = await get_group_by_id(session, data.group_id)
+    if group.category_level_id != data.category_level_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Group has no such category level"
+        )
 
     # if student.user.username != data.user.username:
     #     existing = await get_user_by_username(session, data.user.username)
