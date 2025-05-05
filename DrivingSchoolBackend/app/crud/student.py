@@ -1,10 +1,11 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from core.models import User, Student
 from auth.utils import hash_password
+from core.schemas.profile import StudentProfileSchema
 from core.schemas.student import StudentCreateSchema, StudentUpdateSchema
 from crud.category_level import get_category_level_by_id
 from crud.group import get_group_by_id
@@ -160,3 +161,31 @@ async def get_student_by_id(session: AsyncSession, student_id: int):
     if not student:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
     return student
+
+
+async def get_student_profile(session: AsyncSession, student_id: int):
+    result = await session.execute(
+        select(Student)
+        .options(
+            joinedload(Student.user),
+            joinedload(Student.category_level),
+            joinedload(Student.group)
+        )
+        .where(Student.id == student_id)
+    )
+    student = result.scalar_one_or_none()
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    return StudentProfileSchema(
+        last_name=student.user.last_name,
+        first_name=student.user.first_name,
+        patronymic=student.user.patronymic or '',
+        username=student.user.username,
+        phone_number=student.user.phone_number,
+        birthday=student.user.birthday,
+        group=student.group.name,
+        category=student.category_level.category,
+        transmission=student.category_level.transmission
+    )
+
