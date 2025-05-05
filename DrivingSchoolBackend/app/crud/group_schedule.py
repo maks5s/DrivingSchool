@@ -6,9 +6,10 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import joinedload
 
 from core.config import settings
-from core.models import GroupSchedule, Group
+from core.models import GroupSchedule, Group, Student
 from core.schemas.group_schedule import GroupScheduleCreateSchema, GroupScheduleUpdateSchema, GroupScheduleSchema, \
     GroupScheduleButchCreateSchema, ExistingGroupScheduleSchema, GroupForScheduleSchema
+from core.schemas.profile_schedule import StudentProfileScheduleSchema, InstructorProfileScheduleSchema
 from crud.cabinet import get_cabinet_by_id, get_all_cabinets
 from crud.category_level import get_category_level_by_id
 from crud.group import get_group_by_id
@@ -214,6 +215,50 @@ async def get_max_schedule_date_by_group_id(session: AsyncSession, group_id: int
         .where(GroupSchedule.group_id == group_id)
     )
     return result.scalar_one_or_none()
+
+
+async def get_group_schedules_by_student_id_and_date(session: AsyncSession, student_id: int, date: date):
+    result = await session.execute(
+        select(GroupSchedule)
+        .join(GroupSchedule.group)
+        .join(Group.students)
+        .options(joinedload(GroupSchedule.cabinet))
+        .where(Student.id == student_id, GroupSchedule.date == date)
+    )
+    schedules = result.scalars().all()
+
+    return [
+        StudentProfileScheduleSchema(
+            start_time=s.start_time,
+            end_time=s.end_time,
+            type="Group",
+            extra=s.cabinet.name
+        )
+        for s in schedules
+    ]
+
+
+async def get_group_schedules_by_instructor_and_date(session, instructor_id: int, date: date):
+    result = await session.execute(
+        select(GroupSchedule)
+        .options(
+            joinedload(GroupSchedule.cabinet),
+            joinedload(GroupSchedule.group)
+        )
+        .join(GroupSchedule.group)
+        .where(GroupSchedule.date == date, GroupSchedule.group.has(instructor_id=instructor_id))
+    )
+    schedules = result.scalars().all()
+
+    return [
+        InstructorProfileScheduleSchema(
+            start_time=s.start_time,
+            end_time=s.end_time,
+            type="Group",
+            extra=f"{s.cabinet.name} — {s.group.name}"
+        )
+        for s in schedules
+    ]
 
 
 async def create_butch_practice_schedules(
