@@ -3,12 +3,14 @@ from datetime import date, timedelta
 from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
+from sqlalchemy.orm import joinedload
 
 from core.config import settings
-from core.models import PracticeSchedule
+from core.models import PracticeSchedule, Instructor, Student
 from core.schemas.group_schedule import ExistingGroupScheduleSchema
 from core.schemas.practice_schedule import PracticeScheduleSchema, PracticeScheduleCreateSchema, \
     PracticeScheduleUpdateSchema, PracticeScheduleButchCreateSchema, StudentForScheduleSchema
+from core.schemas.profile_schedule import StudentProfileScheduleSchema, InstructorProfileScheduleSchema
 from crud.category_level import get_category_level_by_id
 from crud.instructor import get_instructor_by_id
 from crud.instructor_category import get_instructor_categories
@@ -283,6 +285,58 @@ async def get_all_practice_schedules_by_vehicle_id_for_dates(
         )
     )
     return result.scalars().all()
+
+
+async def get_practice_schedules_by_student_id_and_date(session: AsyncSession, student_id: int, date: date):
+    result = await session.execute(
+        select(PracticeSchedule)
+        .options(
+            joinedload(PracticeSchedule.instructor).joinedload(Instructor.user),
+            joinedload(PracticeSchedule.vehicle)
+        )
+        .where(PracticeSchedule.student_id == student_id, PracticeSchedule.date == date)
+    )
+    schedules = result.scalars().all()
+
+    return [
+        StudentProfileScheduleSchema(
+            start_time=s.start_time,
+            end_time=s.end_time,
+            type="Practice",
+            extra=
+                f"{s.instructor.user.last_name} "
+                f"{s.instructor.user.first_name[0]}. "
+                f"{s.instructor.user.patronymic[0] + '.' if s.instructor.user.patronymic else ''}"
+                f" – {s.vehicle.brand} {s.vehicle.model}"
+        )
+        for s in schedules
+    ]
+
+
+async def get_practice_schedules_by_instructor_and_date(session, instructor_id: int, date: date):
+    result = await session.execute(
+        select(PracticeSchedule)
+        .options(
+            joinedload(PracticeSchedule.student).joinedload(Student.user),
+            joinedload(PracticeSchedule.vehicle)
+        )
+        .where(PracticeSchedule.instructor_id == instructor_id, PracticeSchedule.date == date)
+    )
+    schedules = result.scalars().all()
+
+    return [
+        InstructorProfileScheduleSchema(
+            start_time=s.start_time,
+            end_time=s.end_time,
+            type="Practice",
+            extra=
+            f"{s.student.user.last_name} "
+            f"{s.student.user.first_name[0]}. "
+            f"{s.student.user.patronymic[0] + '.' if s.student.user.patronymic else ''}"
+            f" – {s.vehicle.brand} {s.vehicle.model}"
+        )
+        for s in schedules
+    ]
 
 
 async def create_butch_practice_schedules(
