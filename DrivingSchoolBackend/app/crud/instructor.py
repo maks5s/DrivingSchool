@@ -1,11 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
-from core.models import User, Instructor
+from core.models import User, Instructor, InstructorCategoryLevel
 from core.schemas.instructor import InstructorCreateSchema, InstructorUpdateSchema
 from auth.utils import hash_password
+from core.schemas.profile import InstructorProfileSchema, CategoryLevelProfileSchema
 from crud.user import get_user_by_username, get_user_by_phone_number
 
 
@@ -138,3 +139,37 @@ async def get_instructor_by_id(session: AsyncSession, instructor_id: int):
     if not instructor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Instructor not found")
     return instructor
+
+
+async def get_instructor_profile(session: AsyncSession, instructor_id: int):
+    result = await session.execute(
+        select(Instructor)
+        .options(
+            joinedload(Instructor.user),
+            joinedload(Instructor.instructor_category_levels).joinedload(
+                InstructorCategoryLevel.category_level
+            )
+        )
+        .where(Instructor.id == instructor_id)
+    )
+    instructor = result.unique().scalar_one_or_none()
+    if not instructor:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Instructor not found")
+
+    return InstructorProfileSchema(
+        last_name=instructor.user.last_name,
+        first_name=instructor.user.first_name,
+        patronymic=instructor.user.patronymic or '',
+        username=instructor.user.username,
+        phone_number=instructor.user.phone_number,
+        birthday=instructor.user.birthday,
+        work_started_date=instructor.work_started_date,
+        categories=[
+            CategoryLevelProfileSchema(
+                category=icl.category_level.category,
+                transmission=icl.category_level.transmission
+            )
+            for icl in instructor.instructor_category_levels
+        ]
+    )
+
