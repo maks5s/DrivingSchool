@@ -1,12 +1,19 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from core.models import db_helper
 from core.schemas.category_level import CategoryLevelReadSchema
 from core.schemas.instructor import InstructorReadSchema, InstructorCreateSchema, InstructorUpdateSchema
+from core.schemas.profile import InstructorProfileSchema
+from core.schemas.profile_schedule import InstructorProfileScheduleSchema
 from crud import instructor as instructor_crud
 from crud import instructor_category as instr_cat_crud
 from sqlalchemy.exc import ProgrammingError
 from auth import user as auth_user
+from crud.group_schedule import get_group_schedules_by_instructor_and_date
+from crud.instructor import get_instructor_profile
+from crud.practice_schedule import get_practice_schedules_by_instructor_and_date
 
 router = APIRouter(prefix="/instructors", tags=["Instructor"])
 
@@ -118,5 +125,43 @@ async def get_categories(
     try:
         async for session in db_helper.user_pwd_session_getter(username, password):
             return await instr_cat_crud.get_instructor_categories(session, instructor_id)
+    except ProgrammingError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
+
+
+@router.get("/{instructor_id}/schedule", response_model=list[InstructorProfileScheduleSchema])
+async def get_instructor_schedule(
+    instructor_id: int,
+    dt: date,
+    payload: dict = Depends(auth_user.get_current_token_payload)
+):
+    username = payload.get("username")
+    password = payload.get("password")
+
+    try:
+        async for session in db_helper.user_pwd_session_getter(username, password):
+            group_schedules = await get_group_schedules_by_instructor_and_date(session, instructor_id, dt)
+            practice_schedules = await get_practice_schedules_by_instructor_and_date(session, instructor_id, dt)
+            schedules = group_schedules + practice_schedules
+
+            schedules.sort(key=lambda x: x.start_time)
+            return schedules
+    except ProgrammingError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
+
+
+@router.get("/{instructor_id}/profile", response_model=InstructorProfileSchema)
+async def instructor_profile(
+    instructor_id: int,
+    payload: dict = Depends(auth_user.get_current_token_payload)
+):
+    username = payload.get("username")
+    password = payload.get("password")
+
+    try:
+        async for session in db_helper.user_pwd_session_getter(username, password):
+            instructor = await get_instructor_profile(session, instructor_id)
+
+            return instructor
     except ProgrammingError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
