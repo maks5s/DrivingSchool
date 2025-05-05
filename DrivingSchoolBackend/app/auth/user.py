@@ -18,7 +18,7 @@ async def validate_auth_user(
     try:
         async for session in db_helper.user_pwd_session_getter(username, password):
             user = await crud_user.get_user_by_username(session, username)
-            user_role = await crud_user.get_user_role_by_username(session, username) if username != 'admin' else 'admin_role'
+            user_role = await crud_user.get_user_role_by_username(session, username)
 
             return UserJWTSchema(
                 id=user.id,

@@ -1,6 +1,7 @@
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import settings
 from core.models import User
 
 
@@ -51,5 +52,9 @@ async def get_user_role_by_username(
         WHERE u.rolname = :username;
     """)
     result = await session.execute(query, {"username": username})
-    row = result.fetchone()
-    return row[0] if row else None
+    roles = result.scalars().all()
+
+    if settings.roles.admin in roles:
+        return settings.roles.admin
+
+    return roles[0] if roles[0] else None
