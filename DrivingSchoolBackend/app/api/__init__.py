@@ -10,6 +10,7 @@ from .group import router as group_router
 from .student import router as student_router
 from .group_schedule import router as group_schedule_router
 from .practice_schedule import router as practice_schedule_router
+from .admin import router as admin_router
 
 router = APIRouter(prefix=settings.api.prefix)
 router.include_router(auth_router)
@@ -21,3 +22,4 @@ router.include_router(group_router)
 router.include_router(student_router)
 router.include_router(group_schedule_router)
 router.include_router(practice_schedule_router)
+router.include_router(admin_router)
