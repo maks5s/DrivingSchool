@@ -80,7 +80,7 @@ async def get_all_by_student_id(
 
     try:
         async for session in db_helper.user_pwd_session_getter(username, password):
-            return await practice_schedule_crud.get_practice_schedules_by_student_id(session, student_id)
+            return await practice_schedule_crud.get_all_practice_schedules_by_student_id(session, student_id)
     except ProgrammingError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
 
