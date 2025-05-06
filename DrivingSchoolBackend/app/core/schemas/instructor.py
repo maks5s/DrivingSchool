@@ -21,7 +21,7 @@ class InstructorCreateSchema(InstructorSchema):
 
 
 class InstructorUpdateSchema(InstructorCreateSchema):
-    pass
+    password: str | None = Field(None, min_length=5)
 
 
 class InstructorReadSchema(InstructorSchema):
