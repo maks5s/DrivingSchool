@@ -1,12 +1,15 @@
+from typing import Literal
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import select, text, asc, desc, or_
 from sqlalchemy.orm import selectinload, joinedload
 
 from core.models import User, Instructor, InstructorCategoryLevel
 from core.schemas.instructor import InstructorCreateSchema, InstructorUpdateSchema
 from auth.utils import hash_password
 from core.schemas.profile import InstructorProfileSchema, CategoryLevelProfileSchema
+from crud.category_level import get_category_level_by_id
 from crud.user import get_user_by_username, get_user_by_phone_number
 
 
@@ -174,3 +177,54 @@ async def get_instructor_profile(session: AsyncSession, instructor_id: int):
         ]
     )
 
+
+async def get_instructors_paginated(
+    session: AsyncSession,
+    page: int = 1,
+    page_size: int = 10,
+    sort_by: str = "last_name",
+    sort_order: Literal["asc", "desc"] = "asc",
+    category_level_id: int | None = None,
+    search: str | None = None
+):
+    if category_level_id:
+        existing = await get_category_level_by_id(session, category_level_id)
+
+    sort_fields = {
+        "last_name": Instructor.user.property.mapper.class_.last_name,
+        "first_name": Instructor.user.property.mapper.class_.first_name,
+        "username": Instructor.user.property.mapper.class_.username,
+    }
+
+    sort_column = sort_fields.get(sort_by)
+    if sort_column is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Unsupported sort field: {sort_by}')
+
+    order_clause = asc(sort_column) if sort_order == "asc" else desc(sort_column)
+
+    stmt = (
+        select(Instructor)
+        .join(Instructor.user)
+        .options(selectinload(Instructor.user))
+        .order_by(order_clause)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    if category_level_id:
+        stmt = stmt.join(InstructorCategoryLevel).where(
+            InstructorCategoryLevel.category_level_id == category_level_id
+        )
+
+    if search:
+        stmt = stmt.filter(
+            or_(
+                User.username.ilike(f"%{search}%"),
+                User.first_name.ilike(f"%{search}%"),
+                User.last_name.ilike(f"%{search}%"),
+                User.patronymic.ilike(f"%{search}%"),
+            )
+        )
+
+    result = await session.execute(stmt)
+    return result.scalars().all()
