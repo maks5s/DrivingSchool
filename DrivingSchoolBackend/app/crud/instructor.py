@@ -107,15 +107,16 @@ async def update_instructor(session: AsyncSession, instructor_id: int, data: Ins
     user.birthday = data.user.birthday
     user.phone_number = data.user.phone_number
 
-    new_hashed_password = hash_password(data.password)
+    if data.password:
+        new_hashed_password = hash_password(data.password)
 
-    if user.hashed_password != new_hashed_password:
-        user.hashed_password = new_hashed_password
+        if user.hashed_password != new_hashed_password:
+            user.hashed_password = new_hashed_password
 
-        query = text(f"""
-            ALTER USER "{user.username}" WITH PASSWORD '{data.password}';
-        """)
-        await session.execute(query)
+            query = text(f"""
+                ALTER USER "{user.username}" WITH PASSWORD '{data.password}';
+            """)
+            await session.execute(query)
 
     await session.commit()
     await session.refresh(instructor)
