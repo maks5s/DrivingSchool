@@ -116,10 +116,11 @@ def generate_group_schedule(
 
     prob.solve(PULP_CBC_CMD(msg=0))
 
-    count = float(str(lpSum([v.value() for v in schedule_vars.values()])))
+    count = int(float(str(lpSum([v.value() for v in schedule_vars.values()]))))
 
     if count < schedule_count:
-        raise Exception(f'Not all schedules are generated (only {count}), try wider date range')
+        raise Exception(f'Not all schedules can be generated (only {count}/{schedule_count}), '
+                        f'try wider date range or more schedules per day')
 
     result_list = []
 

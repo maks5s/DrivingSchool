@@ -346,6 +346,8 @@ async def create_butch_practice_schedules(
     today = date.today()
     if data.start_date <= today:
         raise Exception(f"Wrong date: date should be at least tomorrow ({today + timedelta(days=1)})")
+    if data.start_date > data.end_date:
+        raise Exception(f"Wrong date: end date should be lower or equal to start date ({data.start_date})")
 
     instructor = await get_instructor_by_id(session, data.instructor_id)
 

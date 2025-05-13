@@ -99,6 +99,7 @@ async def update_category_level(session: AsyncSession, category_level_id: int, d
 async def get_all_category_levels(session: AsyncSession):
     result = await session.execute(
         select(CategoryLevel).options(selectinload(CategoryLevel.category_level_info))
+        .order_by(CategoryLevel.category, CategoryLevel.transmission)
     )
     return result.scalars().all()
 

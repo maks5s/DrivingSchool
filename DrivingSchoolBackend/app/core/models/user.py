@@ -22,7 +22,7 @@ class User(Base):
     last_name: Mapped[str] = mapped_column(String(50))
     patronymic: Mapped[str | None] = mapped_column(String(50))
     birthday: Mapped[date]
-    phone_number: Mapped[str] = mapped_column(String(15), unique=True)
+    phone_number: Mapped[str] = mapped_column(String(15), unique=True, index=True)
 
     student: Mapped["Student"] = relationship(back_populates="user")
     instructor: Mapped["Instructor"] = relationship(back_populates="user")

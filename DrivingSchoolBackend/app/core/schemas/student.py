@@ -17,9 +17,12 @@ class StudentCreateSchema(StudentSchema):
 
 
 class StudentUpdateSchema(StudentCreateSchema):
-    pass
+    password: str | None = Field(None, min_length=5)
 
 
 class StudentReadSchema(StudentSchema):
     id: int
 
+
+class StudentPaginatedReadSchema(StudentReadSchema):
+    has_schedule: bool

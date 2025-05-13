@@ -1,9 +1,9 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, exists
 
-from core.models import Group
-from core.schemas.group import GroupCreateSchema, GroupUpdateSchema
+from core.models import Group, GroupSchedule
+from core.schemas.group import GroupCreateSchema, GroupUpdateSchema, GroupPaginatedReadSchema
 from crud.category_level import get_category_level_by_id
 from crud.instructor import get_instructor_by_id
 from crud.instructor_category import get_instructor_categories
@@ -80,3 +80,70 @@ async def get_group_by_id(session: AsyncSession, group_id: int):
     if not group:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
     return group
+
+
+async def get_groups_paginated(
+    session: AsyncSession,
+    page: int = 1,
+    page_size: int = 10,
+    category_level_id: int | None = None,
+    search: str | None = None,
+    only_without_sch: bool = False
+):
+    if category_level_id:
+        existing = await get_category_level_by_id(session, category_level_id)
+
+    stmt = (
+        select(Group)
+        .order_by(Group.name)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    if category_level_id:
+        stmt = stmt.where(
+            Group.category_level_id == category_level_id
+        )
+
+    if search:
+        stmt = stmt.filter(
+            Group.name.ilike(f"%{search}%")
+        )
+
+    if only_without_sch:
+        stmt = stmt.where(
+            ~exists().where(GroupSchedule.group_id == Group.id)
+        )
+
+    res = await session.execute(stmt)
+
+    groups = res.scalars().all()
+
+    from crud.group_schedule import get_group_schedules_by_group_id
+
+    result = []
+    for group in groups:
+        existing = await get_group_schedules_by_group_id(session, group.id)
+
+        result.append(
+            GroupPaginatedReadSchema(
+                id=group.id,
+                name=group.name,
+                created_date=group.created_date,
+                category_level_id=group.category_level_id,
+                instructor_id=group.instructor_id,
+                has_schedule=(True if existing else False)
+            )
+        )
+
+    return result
+
+
+async def get_groups_by_category_level_id(session: AsyncSession, category_level_id: int):
+    exists = await get_category_level_by_id(session, category_level_id)
+
+    result = await session.execute(
+        select(Group)
+        .where(Group.category_level_id == category_level_id)
+    )
+    return result.scalars().all()

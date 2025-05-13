@@ -228,3 +228,15 @@ async def get_instructors_paginated(
 
     result = await session.execute(stmt)
     return result.scalars().all()
+
+
+async def get_instructors_by_category_level_id(session: AsyncSession, category_level_id: int):
+    exists = await get_category_level_by_id(session, category_level_id)
+
+    result = await session.execute(
+        select(Instructor)
+        .options(selectinload(Instructor.user))
+        .join(InstructorCategoryLevel)
+        .where(InstructorCategoryLevel.category_level_id == category_level_id)
+    )
+    return result.scalars().all()

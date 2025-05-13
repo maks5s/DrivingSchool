@@ -1,12 +1,16 @@
+from datetime import date
+from typing import Literal
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import select, text, asc, desc, or_, exists
 from sqlalchemy.orm import selectinload, joinedload
 
-from core.models import User, Student
+from core.models import User, Student, PracticeSchedule
 from auth.utils import hash_password
 from core.schemas.profile import StudentProfileSchema
-from core.schemas.student import StudentCreateSchema, StudentUpdateSchema
+from core.schemas.student import StudentCreateSchema, StudentUpdateSchema, StudentPaginatedReadSchema
+from core.schemas.user import UserSchema
 from crud.category_level import get_category_level_by_id
 from crud.group import get_group_by_id
 from crud.user import get_user_by_username, get_user_by_phone_number
@@ -27,7 +31,18 @@ async def create_student(session: AsyncSession, data: StudentCreateSchema):
             detail="User with this phone number already exists"
         )
 
-    existing = await get_category_level_by_id(session, data.category_level_id)
+    category_level = await get_category_level_by_id(session, data.category_level_id)
+
+    today = date.today()
+    birthday = data.user.birthday
+    age = today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
+
+    min_age = category_level.category_level_info.minimum_age_to_get
+    if age < min_age:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Student must be at least {min_age} years old to enroll in this category level"
+        )
 
     group = await get_group_by_id(session, data.group_id)
     if group.category_level_id != data.category_level_id:
@@ -129,15 +144,16 @@ async def update_student(session: AsyncSession, student_id: int, data: StudentUp
     user.birthday = data.user.birthday
     user.phone_number = data.user.phone_number
 
-    new_hashed_password = hash_password(data.password)
+    if data.password:
+        new_hashed_password = hash_password(data.password)
 
-    if user.hashed_password != new_hashed_password:
-        user.hashed_password = new_hashed_password
+        if user.hashed_password != new_hashed_password:
+            user.hashed_password = new_hashed_password
 
-        query = text(f"""
-            ALTER USER "{user.username}" WITH PASSWORD '{data.password}';
-        """)
-        await session.execute(query)
+            query = text(f"""
+                ALTER USER "{user.username}" WITH PASSWORD '{data.password}';
+            """)
+            await session.execute(query)
 
     await session.commit()
     await session.refresh(student)
@@ -189,3 +205,85 @@ async def get_student_profile(session: AsyncSession, student_id: int):
         transmission=student.category_level.transmission
     )
 
+
+async def get_students_paginated(
+    session: AsyncSession,
+    page: int = 1,
+    page_size: int = 10,
+    sort_by: str = "last_name",
+    sort_order: Literal["asc", "desc"] = "asc",
+    category_level_id: int | None = None,
+    search: str | None = None,
+    only_without_sch: bool = False
+):
+    if category_level_id:
+        existing = await get_category_level_by_id(session, category_level_id)
+
+    sort_fields = {
+        "last_name": Student.user.property.mapper.class_.last_name,
+        "first_name": Student.user.property.mapper.class_.first_name,
+        "username": Student.user.property.mapper.class_.username,
+    }
+
+    sort_column = sort_fields.get(sort_by)
+    if sort_column is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'Unsupported sort field: {sort_by}')
+
+    order_clause = asc(sort_column) if sort_order == "asc" else desc(sort_column)
+
+    stmt = (
+        select(Student)
+        .join(Student.user)
+        .options(selectinload(Student.user))
+        .order_by(order_clause)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    if category_level_id:
+        stmt = stmt.where(
+            Student.category_level_id == category_level_id
+        )
+
+    if search:
+        stmt = stmt.filter(
+            or_(
+                User.username.ilike(f"%{search}%"),
+                User.first_name.ilike(f"%{search}%"),
+                User.last_name.ilike(f"%{search}%"),
+                User.patronymic.ilike(f"%{search}%"),
+            )
+        )
+
+    if only_without_sch:
+        stmt = stmt.where(
+            ~exists().where(PracticeSchedule.student_id == Student.id)
+        )
+
+    res = await session.execute(stmt)
+    students = res.scalars().all()
+
+    from crud.practice_schedule import get_all_practice_schedules_by_student_id
+
+    result = []
+    for student in students:
+        existing = await get_all_practice_schedules_by_student_id(session, student.id)
+
+        result.append(
+            StudentPaginatedReadSchema(
+                id=student.id,
+                category_level_id=student.category_level_id,
+                group_id=student.group_id,
+                user=UserSchema(
+                    username=student.user.username,
+                    first_name=student.user.first_name,
+                    last_name=student.user.last_name,
+                    patronymic=student.user.patronymic,
+                    birthday=student.user.birthday,
+                    phone_number=student.user.phone_number,
+                ),
+                has_schedule=(True if existing else False)
+            )
+        )
+
+    return result

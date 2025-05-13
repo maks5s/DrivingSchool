@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import HTTPException, status
 from sqlalchemy import select, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,9 +10,20 @@ from crud.instructor import get_instructor_by_id
 
 
 async def add_category_to_instructor(session: AsyncSession, instructor_id: int, category_level_id: int):
-    exists = await get_category_level_by_id(session, category_level_id)
+    instructor = await get_instructor_by_id(session, instructor_id)
 
-    exists = await get_instructor_by_id(session, instructor_id)
+    category_level = await get_category_level_by_id(session, category_level_id)
+
+    today = date.today()
+    birthday = instructor.user.birthday
+    age = today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
+
+    min_age = category_level.category_level_info.minimum_age_to_get
+    if age < min_age:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Instructor must be at least {min_age} years old to enroll in this category level"
+        )
 
     exists = await session.execute(
         select(InstructorCategoryLevel).where(

@@ -9,7 +9,8 @@ from core.config import settings
 from core.models import GroupSchedule, Group, Student
 from core.schemas.group_schedule import GroupScheduleCreateSchema, GroupScheduleUpdateSchema, GroupScheduleSchema, \
     GroupScheduleButchCreateSchema, ExistingGroupScheduleSchema, GroupForScheduleSchema
-from core.schemas.profile_schedule import StudentProfileScheduleSchema, InstructorProfileScheduleSchema
+from core.schemas.profile_schedule import StudentProfileScheduleSchema, InstructorProfileScheduleSchema, \
+    ProfileScheduleSchema
 from crud.cabinet import get_cabinet_by_id, get_all_cabinets
 from crud.category_level import get_category_level_by_id
 from crud.group import get_group_by_id
@@ -261,13 +262,39 @@ async def get_group_schedules_by_instructor_and_date(session, instructor_id: int
     ]
 
 
-async def create_butch_practice_schedules(
+async def get_group_schedules_by_group_and_date(session, group_id: int, date: date):
+    result = await session.execute(
+        select(GroupSchedule)
+        .options(
+            joinedload(GroupSchedule.cabinet),
+            joinedload(GroupSchedule.group)
+        )
+        .join(GroupSchedule.group)
+        .where(GroupSchedule.date == date, GroupSchedule.group.has(id=group_id))
+        .order_by(GroupSchedule.start_time)
+    )
+    schedules = result.scalars().all()
+
+    return [
+        ProfileScheduleSchema(
+            start_time=s.start_time,
+            end_time=s.end_time,
+            type="Group",
+            extra=f"{s.cabinet.name}"
+        )
+        for s in schedules
+    ]
+
+
+async def create_butch_group_schedules(
     session: AsyncSession,
     data: GroupScheduleButchCreateSchema,
 ):
     today = date.today()
     if data.start_date <= today:
         raise Exception(f"Wrong date: date should be at least tomorrow ({today + timedelta(days=1)})")
+    if data.start_date > data.end_date:
+        raise Exception(f"Wrong date: end date should be lower or equal to start date ({data.start_date})")
 
     group = await get_group_by_id(session, data.group_id)
     existing = await get_instructor_by_id(session, group.instructor_id)

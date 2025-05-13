@@ -20,3 +20,7 @@ class GroupUpdateSchema(GroupSchema):
 
 class GroupReadSchema(GroupSchema):
     id: int
+
+
+class GroupPaginatedReadSchema(GroupReadSchema):
+    has_schedule: bool

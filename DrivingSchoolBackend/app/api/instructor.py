@@ -2,6 +2,7 @@ from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import ValidationError
 
 from core.models import db_helper
 from core.schemas.category_level import CategoryLevelReadSchema
@@ -16,7 +17,7 @@ from crud.group_schedule import get_group_schedules_by_instructor_and_date
 from crud.instructor import get_instructor_profile, get_instructors_paginated
 from crud.practice_schedule import get_practice_schedules_by_instructor_and_date
 
-router = APIRouter(prefix="/instructors", tags=["Instructor"])
+router = APIRouter(prefix="/instructors", tags=["Instructors"])
 
 
 @router.get("/paginated", response_model=list[InstructorReadSchema])
@@ -62,6 +63,8 @@ async def create_instructor(
             return await instructor_crud.create_instructor(session, data)
     except ProgrammingError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
+    except ValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'{e.errors()[0]['loc']}: {e.errors()[0]['msg']}')
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'{e}')
 

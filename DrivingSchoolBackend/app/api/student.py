@@ -1,19 +1,52 @@
 from datetime import date
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 
 from core.models import db_helper
 from core.schemas.profile import StudentProfileSchema
 from core.schemas.profile_schedule import StudentProfileScheduleSchema
-from core.schemas.student import StudentReadSchema, StudentCreateSchema, StudentUpdateSchema
+from core.schemas.student import StudentReadSchema, StudentCreateSchema, StudentUpdateSchema, StudentPaginatedReadSchema
 from crud import student as student_crud
 from sqlalchemy.exc import ProgrammingError
 from auth import user as auth_user
 from crud.group_schedule import get_group_schedules_by_student_id_and_date
 from crud.practice_schedule import get_practice_schedules_by_student_id_and_date
-from crud.student import get_student_profile
+from crud.student import get_student_profile, get_students_paginated
 
 router = APIRouter(prefix="/students", tags=["Students"])
+
+
+@router.get("/paginated", response_model=list[StudentPaginatedReadSchema])
+async def get_paginated_students(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    sort_by: str = Query("last_name"),
+    sort_order: Literal["asc", "desc"] = Query("asc"),
+    category_level_id: int | None = Query(None),
+    search: str | None = Query(None),
+    only_without_sch: bool = Query(False),
+    payload: dict = Depends(auth_user.get_current_token_payload)
+):
+    username = payload.get("username")
+    password = payload.get("password")
+
+    try:
+        async for session in db_helper.user_pwd_session_getter(username, password):
+            students = await get_students_paginated(
+                session=session,
+                page=page,
+                page_size=page_size,
+                sort_by=sort_by,
+                sort_order=sort_order,
+                category_level_id=category_level_id,
+                search=search,
+                only_without_sch=only_without_sch,
+            )
+
+            return students
+    except ProgrammingError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
 
 
 @router.post("/", response_model=StudentReadSchema)

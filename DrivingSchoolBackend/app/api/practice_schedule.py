@@ -98,5 +98,7 @@ async def create_schedule_butch(
             return await practice_schedule_crud.create_butch_practice_schedules(session, data)
     except ProgrammingError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You have no permissions')
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'{e}')

@@ -1,0 +1,323 @@
+{
+  "category_levels": [
+    {
+      "category": "B",
+      "transmission": "Manual",
+      "description": "Basic manual car license",
+      "theory_lessons_count": 20,
+      "practice_lessons_count": 20,
+      "theory_lessons_duration": "02:00:00",
+      "practice_lessons_duration": "02:00:00",
+      "minimum_age_to_get": 18
+    },
+    {
+      "category": "B",
+      "transmission": "Automatic",
+      "description": "Basic car with automatic transmission",
+      "theory_lessons_count": 20,
+      "practice_lessons_count": 20,
+      "theory_lessons_duration": "02:00:00",
+      "practice_lessons_duration": "02:00:00",
+      "minimum_age_to_get": 18
+    },
+    {
+      "category": "B1",
+      "transmission": "Automatic",
+      "description": "Automatic quadrocycle",
+      "theory_lessons_count": 20,
+      "practice_lessons_count": 20,
+      "theory_lessons_duration": "02:00:00",
+      "practice_lessons_duration": "02:00:00",
+      "minimum_age_to_get": 18
+    },
+    {
+      "category": "C",
+      "transmission": "Manual",
+      "description": "Big manual truck",
+      "theory_lessons_count": 20,
+      "practice_lessons_count": 20,
+      "theory_lessons_duration": "02:00:00",
+      "practice_lessons_duration": "02:00:00",
+      "minimum_age_to_get": 19
+    },
+    {
+      "category": "C",
+      "transmission": "Automatic",
+      "description": "Truck with automatic transmission",
+      "theory_lessons_count": 20,
+      "practice_lessons_count": 20,
+      "theory_lessons_duration": "02:00:00",
+      "practice_lessons_duration": "02:00:00",
+      "minimum_age_to_get": 19
+    }
+  ],
+  "cabinets": [
+    { "name": "Cabinet 101" },
+    { "name": "Cabinet 102" },
+    { "name": "Cabinet 103" },
+    { "name": "Cabinet 104" }
+  ],
+  "vehicles": [
+    {
+      "brand": "Ford",
+      "model": "Focus",
+      "manufacture_year": 2015,
+      "license_plate": "AB0001BB",
+      "fuel_type": "Diesel",
+      "category": "B",
+      "transmission": "Manual"
+    },
+    {
+      "brand": "Volkswagen",
+      "model": "Golf",
+      "manufacture_year": 2013,
+      "license_plate": "AB0002BB",
+      "fuel_type": "Diesel",
+      "category": "B",
+      "transmission": "Manual"
+    },
+    {
+      "brand": "Volkswagen",
+      "model": "Polo",
+      "manufacture_year": 2017,
+      "license_plate": "AB0003BB",
+      "fuel_type": "Gas",
+      "category": "B",
+      "transmission": "Manual"
+    },
+    {
+      "brand": "Honda",
+      "model": "Dio",
+      "manufacture_year": 2011,
+      "license_plate": "AB0004BB",
+      "fuel_type": "Gas",
+      "category": "B1",
+      "transmission": "Automatic"
+    },
+    {
+      "brand": "Volkswagen",
+      "model": "Passat",
+      "manufacture_year": 2018,
+      "license_plate": "AB0005BB",
+      "fuel_type": "Diesel",
+      "category": "B",
+      "transmission": "Automatic"
+    },
+    {
+      "brand": "Skoda",
+      "model": "Octavia",
+      "manufacture_year": 2009,
+      "license_plate": "AB0006BB",
+      "fuel_type": "Gas",
+      "category": "B",
+      "transmission": "Automatic"
+    },
+    {
+      "brand": "Renault",
+      "model": "Master",
+      "manufacture_year": 2013,
+      "license_plate": "AB0007BB",
+      "fuel_type": "Diesel",
+      "category": "C",
+      "transmission": "Automatic"
+    },
+    {
+      "brand": "Mercedes",
+      "model": "Sprinter",
+      "manufacture_year": 2011,
+      "license_plate": "AB0008BB",
+      "fuel_type": "Diesel",
+      "category": "C",
+      "transmission": "Manual"
+    },
+    {
+      "brand": "Chevrolet",
+      "model": "Lanos",
+      "manufacture_year": 2007,
+      "license_plate": "AB0009BB",
+      "fuel_type": "Gas",
+      "category": "B",
+      "transmission": "Manual"
+    },
+    {
+      "brand": "Ford",
+      "model": "Fusion",
+      "manufacture_year": 2019,
+      "license_plate": "AB0010BB",
+      "fuel_type": "Diesel",
+      "category": "B",
+      "transmission": "Automatic"
+    },
+    {
+      "brand": "Kazuma",
+      "model": "Jaguar",
+      "manufacture_year": 2023,
+      "license_plate": "AB0011BB",
+      "fuel_type": "Gas",
+      "category": "B1",
+      "transmission": "Automatic"
+    },
+    {
+      "brand": "Renault",
+      "model": "Mascott",
+      "manufacture_year": 2006,
+      "license_plate": "AB0012BB",
+      "fuel_type": "Diesel",
+      "category": "C",
+      "transmission": "Manual"
+    }
+  ],
+  "instructors": [
+    {
+      "username": "Ivanzolo",
+      "password": "Ivanzolo",
+      "first_name": "Ivan",
+      "last_name": "Zolochevsky",
+      "patronymic": "Serhii",
+      "birthday": "2004-03-11",
+      "phone_number": "380793988108",
+      "work_started_date": "2023-09-01",
+      "categories": [
+        { "category": "B", "transmission": "Manual" }
+      ]
+    },
+    {
+      "username": "MCPetya",
+      "password": "MCPetya",
+      "first_name": "Petro",
+      "last_name": "Mostavchuk",
+      "patronymic": "Petro",
+      "birthday": "1990-10-29",
+      "phone_number": "380703982106",
+      "work_started_date": "2024-12-19",
+      "categories": [
+        { "category": "B", "transmission": "Manual" },
+        { "category": "B", "transmission": "Automatic" },
+        { "category": "B1", "transmission": "Automatic" }
+      ]
+    },
+    {
+      "username": "Zibert1715",
+      "password": "Zibert1715",
+      "first_name": "Dmytro",
+      "last_name": "Bereznyak",
+      "patronymic": null,
+      "birthday": "2003-07-05",
+      "phone_number": "380493718108",
+      "work_started_date": "2025-01-08",
+      "categories": [
+        { "category": "B", "transmission": "Manual" },
+        { "category": "C", "transmission": "Manual" },
+        { "category": "C", "transmission": "Automatic" }
+      ]
+    },
+    {
+      "username": "Inkmate0",
+      "password": "Inkmate0",
+      "first_name": "Serhii",
+      "last_name": "Shevchenko",
+      "patronymic": null,
+      "birthday": "1997-12-04",
+      "phone_number": "380712988145",
+      "work_started_date": "2024-11-28",
+      "categories": [
+        { "category": "B1", "transmission": "Automatic" },
+        { "category": "B", "transmission": "Manual" },
+        { "category": "B", "transmission": "Automatic" },
+        { "category": "C", "transmission": "Manual" },
+        { "category": "C", "transmission": "Automatic" }
+      ]
+    },
+    {
+      "username": "Leha2077",
+      "password": "Leha2077",
+      "first_name": "Oleksiy",
+      "last_name": "Chinazes",
+      "patronymic": "Sauntres",
+      "birthday": "2000-06-10",
+      "phone_number": "380183783408",
+      "work_started_date": "2025-02-17",
+      "categories": [
+        { "category": "B", "transmission": "Manual" },
+        { "category": "B", "transmission": "Automatic" },
+        { "category": "C", "transmission": "Manual" }
+      ]
+    },
+    {
+      "username": "IvanKrup",
+      "password": "IvanKrup",
+      "first_name": "Ivan",
+      "last_name": "Krupnyk",
+      "patronymic": "Volodymyr",
+      "birthday": "2005-07-02",
+      "phone_number": "380772980928",
+      "work_started_date": "2025-03-26",
+      "categories": [
+        { "category": "B1", "transmission": "Automatic" },
+        { "category": "B", "transmission": "Manual" },
+        { "category": "B", "transmission": "Automatic" }
+      ]
+    },
+    {
+      "username": "BonGiorno",
+      "password": "BonGiorno",
+      "first_name": "Artem",
+      "last_name": "Gubyk",
+      "patronymic": "Serhii",
+      "birthday": "2005-02-15",
+      "phone_number": "380143005124",
+      "work_started_date": "2024-12-15",
+      "categories": [
+        { "category": "C", "transmission": "Manual" },
+        { "category": "C", "transmission": "Automatic" }
+      ]
+    },
+    {
+      "username": "Selaviu",
+      "password": "Selaviu",
+      "first_name": "Roman",
+      "last_name": "Laschuk",
+      "patronymic": "Andriy",
+      "birthday": "2004-11-28",
+      "phone_number": "380123903916",
+      "work_started_date": "2023-03-21",
+      "categories": [
+        { "category": "B1", "transmission": "Automatic" },
+        { "category": "B", "transmission": "Manual" },
+        { "category": "B", "transmission": "Automatic" },
+        { "category": "C", "transmission": "Manual" },
+        { "category": "C", "transmission": "Automatic" }
+      ]
+    },
+    {
+      "username": "AllahNa",
+      "password": "AllahNa",
+      "first_name": "Dmytro",
+      "last_name": "Phurdypal",
+      "patronymic": "Andriy",
+      "birthday": "2004-11-04",
+      "phone_number": "380453019698",
+      "work_started_date": "2025-04-16",
+      "categories": [
+        { "category": "B1", "transmission": "Automatic" },
+        { "category": "B", "transmission": "Automatic" },
+        { "category": "C", "transmission": "Manual" }
+      ]
+    },
+    {
+      "username": "BabaIst",
+      "password": "BabaIst",
+      "first_name": "Nikita",
+      "last_name": "Prokopchuk",
+      "patronymic": "Pavlo",
+      "birthday": "2005-05-13",
+      "phone_number": "380123943193",
+      "work_started_date": "2025-01-01",
+      "categories": [
+        { "category": "B", "transmission": "Manual" },
+        { "category": "B", "transmission": "Automatic" },
+        { "category": "C", "transmission": "Manual" }
+      ]
+    }
+  ]
+}
